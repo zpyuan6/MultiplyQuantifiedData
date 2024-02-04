@@ -123,11 +123,15 @@ def compose_signatures(f,g):
 def standard_lexical_merge(x,y):
     #merges nouns, adjective, verbs, or adverbs
     if  x == y:
+        # ≡
         return "equivalence"
     if x == "":
+        # ⊐
         return "reverse entails"
     if y == "":
+        # ⊏
         return "entails"
+    # #
     return "independence"
 
 
@@ -135,17 +139,29 @@ def determiner_merge(determiner1,determiner2):
     #merges determiners
     return determiner_signatures[(determiner1,determiner2)]
 
-def negation_merge(negation1, negation2):
+def negation_merge(negation1, negation2, return_option=False):
     #merges negation
     relations = ["equivalence", "entails", "reverse entails", "contradiction", "cover", "alternation", "independence"]
     if negation1 == negation2 and not negation2:
-        return emptystring_signature
+        if return_option:
+            return emptystring_signature,0  
+        else:
+            return emptystring_signature 
     if negation1 == negation2 and negation2 :
-        return negation_signature
+        if return_option:
+            return negation_signature,1  
+        else:
+            return negation_signature
     if not negation1:
-        return compose_contradiction_signature
+        if return_option:
+            return compose_contradiction_signature,2 
+        else:
+            return compose_contradiction_signature
     if negation1:
-        return compose_signatures(negation_signature, compose_contradiction_signature)
+        if return_option:
+            return compose_signatures(negation_signature, compose_contradiction_signature),3 
+        else:
+            return compose_signatures(negation_signature, compose_contradiction_signature)
 
 def standard_phrase(relation1, relation2):
     #merges a noun relation with an adjective relation
@@ -178,25 +194,41 @@ def get_label(relation):
 def compute_simple_relation(premise, hypothesis):
     #computes the relation between a premise and hypothesis simple sentence
     #leaves
+
+    # Q_s
     subject_negation_signature = negation_merge(premise.subject_negation, hypothesis.subject_negation)
     subject_determiner_signature = determiner_merge(premise.natlog_subject_determiner, hypothesis.natlog_subject_determiner)
+    # N_s
     subject_noun_relation = standard_lexical_merge(premise.subject_noun,hypothesis.subject_noun)
+    # Ajd_s
     subject_adjective_relation = standard_lexical_merge(premise.subject_adjective,hypothesis.subject_adjective)
+    # Neg
     verb_negation_signature = negation_merge(premise.verb_negation, hypothesis.verb_negation)
+    # V
     verb_relation = standard_lexical_merge(premise.verb,hypothesis.verb)
+    # Adv
     adverb_relation = standard_lexical_merge(premise.adverb,hypothesis.adverb)
+    # Q_o
     object_negation_signature = negation_merge(premise.object_negation, hypothesis.object_negation)
     object_determiner_signature = determiner_merge(premise.natlog_object_determiner, hypothesis.natlog_object_determiner)
+    # N_o
     object_noun_relation = standard_lexical_merge(premise.object_noun,hypothesis.object_noun)
+    # Ajd_o
     object_adjective_relation = standard_lexical_merge(premise.object_adjective,hypothesis.object_adjective)
 
     #the nodes of the tree
+    # Adv + V (verb)
     VP_relation = standard_phrase(adverb_relation, verb_relation)
+    # Ajd_o + N_o
     object_NP_relation = standard_phrase(object_adjective_relation, object_noun_relation)
+    # Ajd_s + N_s
     subject_NP_relation = standard_phrase(subject_adjective_relation, subject_noun_relation)
+    #  (Adv + V (verb)) + Q_o + (Ajd_o + N_o)
     object_DP_relation = determiner_phrase(object_determiner_signature, object_NP_relation, VP_relation)
     object_negDP_relation = negation_phrase(object_negation_signature, object_DP_relation)
+    #  Neg + (Adv + V (verb)) + Q_o + (Ajd_o + N_o)
     negverb_relation = negation_phrase(verb_negation_signature, object_negDP_relation)
+    # Q_s + (Ajd_s + N_s) + Neg + (Adv + V (verb)) + Q_o + (Ajd_o + N_o)
     subject_DP_relation = determiner_phrase(subject_determiner_signature, subject_NP_relation, negverb_relation)
     subject_NegDP_relation = negation_phrase(subject_negation_signature, subject_DP_relation)
     return subject_NegDP_relation

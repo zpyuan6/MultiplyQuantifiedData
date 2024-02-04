@@ -6,6 +6,7 @@ import random
 import json
 import numpy as np
 from functools import reduce
+import tqdm
 
 def process_data(train_ratio):
     #split the different parts of speech into train, validation, and test
@@ -539,18 +540,24 @@ def generate_balanced_data(simple_filename, boolean_filename, simple_size, boole
         pcounts = [1] * len(pkeys)
     label_size = int(simple_size/3)
     examples = []
-    for i in range(label_size):
-        encoding = json.loads(weighted_selection(ekeys, ecounts))
-        premise, hypothesis = encoding_to_example(data,encoding)
-        examples.append((premise.emptystring, "entailment", hypothesis.emptystring))
-    for i in range(label_size):
-        encoding = json.loads(weighted_selection(ckeys, ccounts))
-        premise, hypothesis = encoding_to_example(data,encoding)
-        examples.append((premise.emptystring, "contradiction", hypothesis.emptystring))
-    for i in range(label_size):
-        encoding = json.loads(weighted_selection(pkeys, pcounts))
-        premise, hypothesis = encoding_to_example(data,encoding)
-        examples.append((premise.emptystring, "neutral", hypothesis.emptystring))
+    with tqdm.tqdm(total=label_size) as tbar:
+        for i in range(label_size):
+            encoding = json.loads(weighted_selection(ekeys, ecounts))
+            premise, hypothesis = encoding_to_example(data,encoding)
+            examples.append((premise.emptystring, "entailment", hypothesis.emptystring))
+            tbar.update(1)
+    with tqdm.tqdm(total=label_size) as tbar:
+        for i in range(label_size):
+            encoding = json.loads(weighted_selection(ckeys, ccounts))
+            premise, hypothesis = encoding_to_example(data,encoding)
+            examples.append((premise.emptystring, "contradiction", hypothesis.emptystring))
+            tbar.update(1)
+    with tqdm.tqdm(total=label_size) as tbar:
+        for i in range(label_size):
+            encoding = json.loads(weighted_selection(pkeys, pcounts))
+            premise, hypothesis = encoding_to_example(data,encoding)
+            examples.append((premise.emptystring, "neutral", hypothesis.emptystring))
+            tbar.update(1)
     bool_label_size = int(boolean_size/3)
     bool_e,bool_c,bool_p = split_dict(boolean_filename, None)
     bool_ekeys = list(bool_e.keys())
